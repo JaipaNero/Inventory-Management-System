@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit Item | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">Edit Inventory Item</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Item Details</span>
+                
+                <form method="POST" action="{{ url_for('inventory.edit_item', item_id=item.id) }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <!-- Part Number Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.part_number(id="part_number", class="validate") }}
+                            <label for="part_number" {% if form.part_number.data %}class="active"{% endif %}>Part Number</label>
+                            {% if form.part_number.errors %}
+                                {% for error in form.part_number.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="helper-text">Required. Must be unique.</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Name Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.name(id="name", class="validate") }}
+                            <label for="name" {% if form.name.data %}class="active"{% endif %}>Name</label>
+                            {% if form.name.errors %}
+                                {% for error in form.name.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Description Field -->
+                        <div class="input-field col s12">
+                            {{ form.description(id="description", class="materialize-textarea") }}
+                            <label for="description" {% if form.description.data %}class="active"{% endif %}>Description</label>
+                            {% if form.description.errors %}
+                                {% for error in form.description.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Item Type Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.item_type(id="item_type") }}
+                            {{ form.item_type.label }}
+                            {% if form.item_type.errors %}
+                                {% for error in form.item_type.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Store Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.store_id(id="store_id") }}
+                            {{ form.store_id.label }}
+                            {% if form.store_id.errors %}
+                                {% for error in form.store_id.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Quantity Field (Display-only, cannot be edited directly) -->
+                        <div class="input-field col s12">
+                            {{ form.quantity(id="quantity", class="validate", disabled=True) }}
+                            <label for="quantity" class="active">Current Quantity</label>
+                            <span class="helper-text">Quantity can only be changed using the Adjust Stock function</span>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col s12">
+                            {{ form.submit(class="btn waves-effect waves-light teal right") }}
+                            <a href="{{ url_for('inventory.view_item', item_id=item.id) }}" class="btn-flat waves-effect left">
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize select inputs for Materialize
+        var selects = document.querySelectorAll('select');
+        M.FormSelect.init(selects);
+
+        // Initialize textareas
+        var textareas = document.querySelectorAll('.materialize-textarea');
+        M.textareaAutoResize(textareas);
+    });
+</script>
+{% endblock %}

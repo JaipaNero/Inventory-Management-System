@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Adjust Stock | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">Adjust Stock: {{ item.part_number }}</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12 m10 offset-m1 l8 offset-l2">
+        <div class="card hoverable">
+            <div class="card-content">
+                <span class="card-title">{{ item.name }}</span>
+                
+                <!-- Item Info Summary -->
+                <div class="row mb-2">
+                    <div class="col s12">
+                        <div class="card-panel blue lighten-5">
+                            <div class="row mb-0">
+                                <div class="col s12 m6">
+                                    <p><strong>Part Number:</strong> {{ item.part_number }}</p>
+                                    <p><strong>Type:</strong> {{ item.item_type.value.capitalize() }}</p>
+                                    <p><strong>Store:</strong> {{ item.store.name }}</p>
+                                </div>
+                                <div class="col s12 m6">
+                                    <p><strong>Current Quantity:</strong> 
+                                        <span class="{% if item.quantity <= 0 %}red-text{% elif item.quantity <= 5 %}orange-text{% else %}green-text{% endif %}">
+                                            {{ item.quantity }}
+                                        </span>
+                                    </p>
+                                    <p><strong>Status:</strong> 
+                                        {% if item.quantity <= 0 %}
+                                            <span class="status-badge status-out-of-stock">Out of Stock</span>
+                                        {% elif item.quantity <= 5 %}
+                                            <span class="status-badge status-low-stock">Low Stock</span>
+                                        {% else %}
+                                            <span class="status-badge status-in-stock">In Stock</span>
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Adjustment Form -->
+                <form method="POST" action="{{ url_for('inventory.adjust_stock', item_id=item.id) }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="input-field col s12">
+                            {{ form.adjustment(id="adjustment", class="validate", min=-item.quantity if item.quantity > 0 else -99999) }}
+                            <label for="adjustment">Quantity Adjustment</label>
+                            <span class="helper-text">Enter a positive number to add stock, negative to remove stock.</span>
+                            {% if form.adjustment.errors %}
+                                {% for error in form.adjustment.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="input-field col s12">
+                            {{ form.reason(id="reason", class="materialize-textarea") }}
+                            <label for="reason">Reason for Adjustment</label>
+                            {% if form.reason.errors %}
+                                {% for error in form.reason.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <!-- Allow Negative Inventory Option (for admins only) -->
+                    {% if current_user.role.value == 'admin_global' %}
+                    <div class="row">
+                        <div class="col s12">
+                            <label>
+                                <input type="checkbox" name="force_negative" id="force_negative" class="filled-in" />
+                                <span>Allow Negative Inventory</span>
+                            </label>
+                            <p class="helper-text">Check this box to allow inventory to go below zero.</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Preview of New Quantity -->
+                    <div class="row" id="quantityPreview" style="display: none;">
+                        <div class="col s12">
+                            <div class="card-panel" id="previewPanel">
+                                <p>
+                                    <strong>Current Quantity:</strong> <span id="currentQty">{{ item.quantity }}</span>
+                                    <br>
+                                    <strong>Adjustment:</strong> <span id="adjustmentValue"></span>
+                                    <br>
+                                    <strong>New Quantity:</strong> <span id="newQty"></span>
+                                    <span id="negativeWarning" class="red-text" style="display: none;">
+                                        <br>
+                                        <i class="material-icons tiny">warning</i> Warning: This will result in negative inventory.
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col s12">
+                            <button type="submit" class="btn waves-effect waves-light teal right">
+                                <i class="material-icons left">save</i>Save Adjustment
+                            </button>
+                            <a href="{{ url_for('inventory.view_item', item_id=item.id) }}" class="btn-flat waves-effect left">
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize form elements
+        var textareas = document.querySelectorAll('.materialize-textarea');
+        M.textareaAutoResize(textareas);
+        
+        // Calculator for previewing new quantity
+        const adjustmentInput = document.getElementById('adjustment');
+        const currentQuantity = {{ item.quantity }};
+        const previewDiv = document.getElementById('quantityPreview');
+        const previewPanel = document.getElementById('previewPanel');
+        const adjustmentValueSpan = document.getElementById('adjustmentValue');
+        const newQtySpan = document.getElementById('newQty');
+        const negativeWarning = document.getElementById('negativeWarning');
+        
+        adjustmentInput.addEventListener('input', function() {
+            const adjustment = parseInt(this.value) || 0;
+            const newQuantity = currentQuantity + adjustment;
+            
+            // Update display elements
+            if (this.value) {
+                previewDiv.style.display = 'block';
+                adjustmentValueSpan.textContent = adjustment > 0 ? '+' + adjustment : adjustment;
+                newQtySpan.textContent = newQuantity;
+                
+                // Update panel color
+                if (newQuantity < 0) {
+                    previewPanel.className = 'card-panel red lighten-4';
+                    negativeWarning.style.display = 'inline';
+                } else if (newQuantity <= 5) {
+                    previewPanel.className = 'card-panel orange lighten-4';
+                    negativeWarning.style.display = 'none';
+                } else {
+                    previewPanel.className = 'card-panel green lighten-5';
+                    negativeWarning.style.display = 'none';
+                }
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        });
+    });
+</script>
+{% endblock %}

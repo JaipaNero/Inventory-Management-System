@@ -1,0 +1,185 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">Dashboard</h3>
+    </div>
+</div>
+
+<!-- Store Selection Dropdown -->
+<div class="row">
+    <div class="col s12">
+        <div class="card blue-grey lighten-5">
+            <div class="card-content p-3">
+                <div class="row mb-0 valign-wrapper">
+                    <div class="col s12 m9">
+                        <span class="card-title">Current Store: <strong>{{ active_store.name }}</strong></span>
+                        <p>{{ active_store.location or "No location specified" }}</p>
+                    </div>
+                    <div class="col s12 m3 right-align">
+                        <a class="dropdown-trigger btn waves-effect waves-light" href="#" data-target="store-dropdown">
+                            <i class="material-icons left">store</i>Switch Store
+                        </a>
+                        <ul id="store-dropdown" class="dropdown-content">
+                            {% if current_user.role.value == 'admin_global' %}
+                                {% for store in stores %}
+                                <li {% if store.id == active_store.id %}class="active"{% endif %}>
+                                    <a href="{{ url_for('main.set_active_store', store_id=store.id) }}">{{ store.name }}</a>
+                                </li>
+                                {% endfor %}
+                            {% else %}
+                                {% for store in current_user.stores %}
+                                <li {% if store.id == active_store.id %}class="active"{% endif %}>
+                                    <a href="{{ url_for('main.set_active_store', store_id=store.id) }}">{{ store.name }}</a>
+                                </li>
+                                {% endfor %}
+                            {% endif %}
+                            <li class="divider"></li>
+                            <li><a href="{{ url_for('main.select_store') }}"><i class="material-icons left">list</i>View All</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Overview Cards -->
+<div class="row">
+    <div class="col s12 m6 l4">
+        <div class="card dashboard-card hoverable">
+            <div class="card-content">
+                <div class="row mb-0">
+                    <div class="col s8">
+                        <p class="card-title">Total Items</p>
+                        <p class="card-value">{{ data.inventory_count }}</p>
+                    </div>
+                    <div class="col s4 center-align">
+                        <i class="material-icons card-icon">inventory_2</i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-action black">
+                <a href="{{ url_for('inventory.items') }}" class="white-text">View All Items</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col s12 m6 l4">
+        <div class="card dashboard-card hoverable">
+            <div class="card-content">
+                <div class="row mb-0">
+                    <div class="col s8">
+                        <p class="card-title">Low Stock</p>
+                        <p class="card-value">{{ data.low_stock_count }}</p>
+                    </div>
+                    <div class="col s4 center-align">
+                        <i class="material-icons card-icon orange-text">warning</i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-action black">
+                <a href="{{ url_for('inventory.items') }}?filter=low_stock" class="white-text">View Low Stock</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="col s12 m6 l4">
+        <div class="card dashboard-card hoverable">
+            <div class="card-content">
+                <div class="row mb-0">
+                    <div class="col s8">
+                        <p class="card-title">Out of Stock</p>
+                        <p class="card-value">{{ data.out_of_stock_count }}</p>
+                    </div>
+                    <div class="col s4 center-align">
+                        <i class="material-icons card-icon red-text">remove_shopping_cart</i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-action black">
+                <a href="{{ url_for('inventory.items') }}?filter=out_of_stock" class="white-text">View Out of Stock</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions Section -->
+<div class="row">
+    <div class="col s12">
+        <div class="card">
+            <div class="card-content">
+                <div class="row mb-2 valign-wrapper">
+                    <div class="col s12 m8">
+                        <span class="card-title">Recent Transactions</span>
+                        <p class="grey-text">Last 7 days: {{ data.transaction_count_7d }} transactions</p>
+                    </div>
+                    <div class="col s12 m4 right-align">
+                        {% if current_user.role.value == 'user' or current_user.role.value == 'partner_admin' or current_user.role.value == 'admin_global' %}
+                            <a href="{{ url_for('inventory.register_outgoing') }}" class="btn waves-effect waves-light black hoverable action-btn">
+                                <i class="material-icons left">send</i>Register Outgoing
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="highlight responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Date/Time</th>
+                                <th>Item</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in data.recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    {% if transaction.item %}
+                                        {{ transaction.item.part_number }} - {{ transaction.item.name }}
+                                    {% else %}
+                                        Unknown Item
+                                    {% endif %}
+                                </td>
+                                <td>{{ transaction.transaction_type.value.replace('_', ' ').title() }}</td>
+                                <td class="{{ 'red-text' if transaction.quantity_change < 0 else 'green-text' }}">
+                                    {{ transaction.quantity_change }}
+                                </td>
+                                <td>{{ transaction.notes | truncate(50) }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="center-align">No recent transactions</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize dropdown
+        var dropdowns = document.querySelectorAll('.dropdown-trigger');
+        M.Dropdown.init(dropdowns, {
+            coverTrigger: false,
+            constrainWidth: false
+        });
+        
+        // Set up real-time inventory updates
+        setupRealtimeUpdates();
+    });
+</script>
+{% endblock %}

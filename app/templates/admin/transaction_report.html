@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+
+{% block title %}Transaction Report | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">Transaction Report</h3>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="row">
+    <div class="col s12">
+        <div class="card filter-section">
+            <div class="card-content">
+                <span class="card-title">Filters</span>
+                <form method="GET" action="{{ url_for('admin.transaction_report') }}">
+                    <div class="row mb-0">
+                        <div class="input-field col s12 m3">
+                            <select id="store_id" name="store_id">
+                                <option value="" {% if not selected_store_id %}selected{% endif %}>All Stores</option>
+                                {% for store in stores %}
+                                <option value="{{ store.id }}" {% if selected_store_id == store.id %}selected{% endif %}>{{ store.name }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="store_id">Store</label>
+                        </div>
+                        
+                        <div class="input-field col s12 m3">
+                            <select id="transaction_type" name="transaction_type">
+                                <option value="" {% if not selected_transaction_type %}selected{% endif %}>All Types</option>
+                                {% for t_value, t_name in transaction_types %}
+                                <option value="{{ t_value }}" {% if selected_transaction_type == t_value %}selected{% endif %}>{{ t_name }}</option>
+                                {% endfor %}
+                            </select>
+                            <label for="transaction_type">Transaction Type</label>
+                        </div>
+                        
+                        <div class="input-field col s12 m2">
+                            <input type="text" id="date_from" name="date_from" class="datepicker" value="{{ date_from }}">
+                            <label for="date_from">From Date</label>
+                        </div>
+                        
+                        <div class="input-field col s12 m2">
+                            <input type="text" id="date_to" name="date_to" class="datepicker" value="{{ date_to }}">
+                            <label for="date_to">To Date</label>
+                        </div>
+                        
+                        <div class="input-field col s12 m2">
+                            <button type="submit" class="btn waves-effect waves-light teal">
+                                <i class="material-icons left">filter_list</i> Apply
+                            </button>
+                            <a href="{{ url_for('admin.transaction_report') }}" class="btn-flat waves-effect">Clear</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Transactions Table -->
+<div class="row">
+    <div class="col s12">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Transactions</span>
+                <div class="table-container">
+                    <table class="highlight responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Store</th>
+                                <th>Item</th>
+                                <th>Type</th>
+                                <th>Quantity Change</th>
+                                <th>User</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in transactions.items %}
+                            <tr>
+                                <td>{{ transaction.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>{{ transaction.store.name }}</td>
+                                <td>
+                                    {% if transaction.item %}
+                                    <a href="{{ url_for('inventory.view_item', item_id=transaction.item.id) }}">
+                                        {{ transaction.item.part_number }} - {{ transaction.item.name }}
+                                    </a>
+                                    {% else %}
+                                        Unknown Item
+                                    {% endif %}
+                                </td>
+                                <td>{{ transaction.transaction_type.value.replace('_', ' ').title() }}</td>
+                                <td class="{{ 'red-text' if transaction.quantity_change < 0 else 'green-text' }}">
+                                    {{ transaction.quantity_change }}
+                                </td>
+                                <td>
+                                    {% if transaction.user %}
+                                        {{ transaction.user.username }}
+                                    {% else %}
+                                        System
+                                    {% endif %}
+                                </td>
+                                <td>{{ transaction.notes }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="center-align">No transactions found matching your filter criteria</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-action">
+                <!-- Pagination -->
+                <ul class="pagination">
+                    {% if transactions.has_prev %}
+                    <li class="waves-effect">
+                        <a href="{{ url_for('admin.transaction_report', page=transactions.prev_num, store_id=selected_store_id, transaction_type=selected_transaction_type, date_from=date_from, date_to=date_to) }}">
+                            <i class="material-icons">chevron_left</i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="disabled">
+                        <a href="#!"><i class="material-icons">chevron_left</i></a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for page_num in range(max(1, transactions.page - 2), min(transactions.pages + 1, transactions.page + 3)) %}
+                    <li class="{% if page_num == transactions.page %}active teal{% else %}waves-effect{% endif %}">
+                        <a href="{{ url_for('admin.transaction_report', page=page_num, store_id=selected_store_id, transaction_type=selected_transaction_type, date_from=date_from, date_to=date_to) }}">{{ page_num }}</a>
+                    </li>
+                    {% endfor %}
+                    
+                    {% if transactions.has_next %}
+                    <li class="waves-effect">
+                        <a href="{{ url_for('admin.transaction_report', page=transactions.next_num, store_id=selected_store_id, transaction_type=selected_transaction_type, date_from=date_from, date_to=date_to) }}">
+                            <i class="material-icons">chevron_right</i>
+                        </a>
+                    </li>
+                    {% else %}
+                    <li class="disabled">
+                        <a href="#!"><i class="material-icons">chevron_right</i></a>
+                    </li>
+                    {% endif %}
+                </ul>
+                
+                <a href="#!" id="export-csv" class="btn waves-effect waves-light blue right">
+                    <i class="material-icons left">file_download</i> Export CSV
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Export to CSV functionality
+        document.getElementById('export-csv').addEventListener('click', function() {
+            M.toast({html: 'Exporting to CSV...', classes: 'rounded'});
+            // In a real app, this would be a real export function
+            setTimeout(function() {
+                M.toast({html: 'Export complete!', classes: 'rounded green'});
+            }, 1500);
+        });
+    });
+</script>
+{% endblock %}

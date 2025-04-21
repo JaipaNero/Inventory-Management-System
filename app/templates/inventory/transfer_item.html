@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+
+{% block title %}Transfer Item | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">Transfer Inventory Item</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Transfer Details</span>
+                
+                <form method="POST" action="{{ url_for('inventory.transfer_item') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <!-- Source Store Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.source_store_id(id="source_store_id") }}
+                            {{ form.source_store_id.label }}
+                            {% if form.source_store_id.errors %}
+                                {% for error in form.source_store_id.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Destination Store Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.destination_store_id(id="destination_store_id") }}
+                            {{ form.destination_store_id.label }}
+                            {% if form.destination_store_id.errors %}
+                                {% for error in form.destination_store_id.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Item Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.item_id(id="item_id") }}
+                            {{ form.item_id.label }}
+                            {% if form.item_id.errors %}
+                                {% for error in form.item_id.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="helper-text">Select a source store first</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Quantity Field -->
+                        <div class="input-field col s12 m6">
+                            {{ form.quantity(id="quantity", class="validate") }}
+                            {{ form.quantity.label }}
+                            {% if form.quantity.errors %}
+                                {% for error in form.quantity.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <!-- Notes Field -->
+                        <div class="input-field col s12">
+                            {{ form.notes(id="notes", class="materialize-textarea") }}
+                            {{ form.notes.label }}
+                            {% if form.notes.errors %}
+                                {% for error in form.notes.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="helper-text">Optional</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col s12">
+                            {{ form.submit(class="btn waves-effect waves-light teal right") }}
+                            <a href="{{ url_for('inventory.items') }}" class="btn-flat waves-effect left">
+                                Cancel
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize select inputs for Materialize
+        var selects = document.querySelectorAll('select');
+        M.FormSelect.init(selects);
+
+        // Handle dependent fields - load items when source store changes
+        const sourceStoreSelect = document.getElementById('source_store_id');
+        const itemSelect = document.getElementById('item_id');
+        
+        sourceStoreSelect.addEventListener('change', function() {
+            const storeId = this.value;
+            
+            // Clear item select
+            itemSelect.innerHTML = '<option value="" disabled selected>Select an item</option>';
+            
+            if (storeId) {
+                // Fetch items for selected store via AJAX
+                fetch(`/inventory/api/items/by-store/${storeId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (Array.isArray(data)) {
+                            data.forEach(item => {
+                                const option = document.createElement('option');
+                                option.value = item.id;
+                                option.textContent = `${item.part_number} - ${item.name} (${item.quantity} available)`;
+                                itemSelect.appendChild(option);
+                            });
+                            
+                            // Reinitialize Materialize select
+                            M.FormSelect.init(itemSelect);
+                        }
+                    })
+                    .catch(error => console.error('Error fetching items:', error));
+            }
+        });
+        
+        // Trigger change event if source store is already selected
+        if (sourceStoreSelect.value) {
+            const event = new Event('change');
+            sourceStoreSelect.dispatchEvent(event);
+        }
+    });
+</script>
+{% endblock %}

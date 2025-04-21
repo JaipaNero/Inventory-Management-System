@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}No Stores Assigned | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <div class="card-panel amber lighten-4">
+            <div class="center-align">
+                <i class="material-icons large amber-text text-darken-3">store</i>
+                <h4>No Store Access</h4>
+                <p class="flow-text">
+                    You don't have access to any stores in the system.
+                    Please contact an administrator to be assigned to a store.
+                </p>
+                <a href="{{ url_for('auth.logout') }}" class="btn amber darken-2 waves-effect waves-light">
+                    <i class="material-icons left">exit_to_app</i>
+                    Log Out
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

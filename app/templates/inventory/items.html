@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block title %}Inventory | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">
+            Inventory
+            <span class="right">{{ active_store.name }}</span>
+        </h3>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="row">
+    <div class="col s12">
+        <div class="card filter-section">
+            <div class="row mb-0">
+                <div class="col s12 m6 l8">
+                    <div class="input-field">
+                        <i class="material-icons prefix">search</i>
+                        <input type="text" id="inventory-search" placeholder="Search inventory...">
+                        <label for="inventory-search" class="active">Search</label>
+                    </div>
+                </div>
+                
+                <div class="col s12 m6 l4">
+                    <div class="row mb-0">
+                        <!-- Item Type Switch - Only visible to partner_admin and admin_global -->
+                        {% if current_user.role.value in ['admin_global', 'partner_admin'] %}
+                        <div class="input-field col s12 m6">
+                            <select id="item-type-filter">
+                                <option value="all" {% if not request.args.get('type') %}selected{% endif %}>All Types</option>
+                                <option value="electronics" {% if request.args.get('type') == 'electronics' %}selected{% endif %}>Electronics</option>
+                                <option value="accessories" {% if request.args.get('type') == 'accessories' %}selected{% endif %}>Accessories</option>
+                            </select>
+                            <label>Filter by Type</label>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Inventory Table -->
+<div class="row">
+    <div class="col s12">
+        <div class="card">
+            <div class="card-content">
+                <div class="row mb-0">
+                    <div class="col s12 m6">
+                        <span class="card-title">Items</span>
+                        <p class="grey-text">Total: {{ inventory|length }} items</p>
+                    </div>
+                    <div class="col s12 m6">
+                        <div class="right">
+                            {% if current_user.role.value in ['admin_global', 'partner_admin'] %}
+                            <a href="{{ url_for('inventory.add_item') }}" class="btn waves-effect waves-light teal">
+                                <i class="material-icons left">add</i>Add Item
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table class="highlight responsive-table" id="inventory-table" data-store-id="{{ active_store.id }}">
+                        <thead>
+                            <tr>
+                                <th>Part Number</th>
+                                <th>Name</th>
+                                <th>Type</th>
+                                <th>Quantity</th>
+                                <th>Status</th>
+                                <th>Last Updated</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in inventory %}
+                            <tr data-item-id="{{ item.id }}" data-item-type="{{ item.item_type.value }}">
+                                <td>{{ item.part_number }}</td>
+                                <td>{{ item.name }}</td>
+                                <td>{{ item.item_type.value.capitalize() }}</td>
+                                <td class="item-quantity">{{ item.quantity }}</td>
+                                <td>
+                                    {% if item.quantity <= 0 %}
+                                        <span class="status-badge status-out-of-stock">Out of Stock</span>
+                                    {% elif item.quantity <= 5 %}
+                                        <span class="status-badge status-low-stock">Low Stock</span>
+                                    {% else %}
+                                        <span class="status-badge status-in-stock">In Stock</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.updated_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td>
+                                    <a href="{{ url_for('inventory.view_item', item_id=item.id) }}" class="btn-flat waves-effect tooltipped" data-position="left" data-tooltip="View Details">
+                                        <i class="material-icons grey-text text-darken-2">visibility</i>
+                                    </a>
+                                    
+                                    {% if current_user.role.value in ['admin_global', 'partner_admin'] and (current_user.role.value == 'admin_global' or item.item_type.value == 'accessories') %}
+                                    <!-- Adjust Stock Button - Direct Link -->
+                                    <a href="{{ url_for('inventory.adjust_stock', item_id=item.id) }}" class="btn-flat waves-effect tooltipped" data-position="top" data-tooltip="Adjust Stock">
+                                        <i class="material-icons grey-text text-darken-2">exposure</i>
+                                    </a>
+                                    
+                                    <!-- Edit Item Button -->
+                                    <a href="{{ url_for('inventory.edit_item', item_id=item.id) }}" class="btn-flat waves-effect tooltipped" data-position="right" data-tooltip="Edit Item">
+                                        <i class="material-icons grey-text text-darken-2">edit</i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <!-- Register Outgoing Button (only for accessories with quantity > 0) -->
+                                    {% if item.item_type.value == 'accessories' and item.quantity > 0 %}
+                                    <a href="{{ url_for('inventory.quick_register_outgoing', item_id=item.id) }}" class="btn-flat waves-effect tooltipped" data-position="right" data-tooltip="Register Outgoing">
+                                        <i class="material-icons grey-text text-darken-2">exit_to_app</i>
+                                    </a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="center-align">No inventory items found.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize modals
+        const modalElems = document.querySelectorAll('.modal');
+        M.Modal.init(modalElems);
+        
+        // Initialize select elements in modals
+        const selectElems = document.querySelectorAll('select');
+        M.FormSelect.init(selectElems);
+        
+        // Set up real-time inventory updates
+        setupRealtimeUpdates();
+        
+        // Item type switch URL handling
+        const itemTypeSwitch = document.getElementById('item-type-switch');
+        if (itemTypeSwitch) {
+            itemTypeSwitch.addEventListener('change', function() {
+                const currentUrl = new URL(window.location.href);
+                
+                if (itemTypeSwitch.checked) {
+                    currentUrl.searchParams.set('item_type', 'accessories');
+                } else {
+                    currentUrl.searchParams.delete('item_type');
+                }
+                
+                window.location.href = currentUrl.toString();
+            });
+        }
+    });
+</script>
+{% endblock %}

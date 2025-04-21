@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+
+{% block title %}User Management | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">User Management</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <a href="{{ url_for('auth.create_user') }}" class="btn waves-effect waves-light" style="background-color: #2089ff">
+            <i class="material-icons left">person_add</i> Create New User
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">Users</span>
+                <div class="table-container">
+                    <table class="highlight responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Role</th>
+                                <th>Status</th>
+                                <th>Last Login</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for user in users %}
+                            <tr>
+                                <td>{{ user.username }}</td>
+                                <td>{{ user.role.value.replace('_', ' ').title() }}</td>
+                                <td>
+                                    {% if user.is_locked %}
+                                    <span class="status-badge status-out-of-stock">Locked</span>
+                                    {% else %}
+                                    <span class="status-badge status-in-stock">Active</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ user.last_login.strftime('%Y-%m-%d %H:%M') if user.last_login else 'Never' }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('auth.edit_user', user_id=user.id) }}" class="btn-flat waves-effect tooltipped" data-position="left" data-tooltip="Edit User">
+                                            <i class="material-icons grey-text text-darken-2">edit</i>
+                                        </a>
+                                        <a href="{{ url_for('auth.manage_user_stores', user_id=user.id) }}" class="btn-flat waves-effect tooltipped" data-position="top" data-tooltip="Manage Stores">
+                                            <i class="material-icons grey-text text-darken-2">store</i>
+                                        </a>
+                                        <button data-target="delete-user-modal-{{ user.id }}" class="btn-flat waves-effect modal-trigger {% if user.id == current_user.id %}disabled{% endif %}" style="color: #9e9e9e;">
+                                            <i class="material-icons red-text text-lighten-2">delete</i>
+                                        </button>
+                                        
+                                        <!-- Delete User Modal -->
+                                        <div id="delete-user-modal-{{ user.id }}" class="modal">
+                                            <div class="modal-content">
+                                                <h4>Confirm Delete</h4>
+                                                <p>Are you sure you want to delete user <strong>{{ user.username }}</strong>?</p>
+                                                <p class="red-text">This action cannot be undone.</p>
+                                            </div>
+                                            <div class="modal-footer">
+                                                <a href="#!" class="modal-close waves-effect waves-green btn-flat">Cancel</a>
+                                                <form action="{{ url_for('auth.delete_user', user_id=user.id) }}" method="post" style="display:inline;">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <button type="submit" class="waves-effect waves-red btn-flat red-text">Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="center-align">No users found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

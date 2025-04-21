@@ -1,0 +1,106 @@
+{% extends 'base.html' %}
+
+{% block title %}Create User | {{ super() }}{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col s12">
+        <h3 class="page-title">Create New User</h3>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col s12 m10 offset-m1 l8 offset-l2">
+        <div class="card">
+            <div class="card-content">
+                <span class="card-title">User Information</span>
+                
+                <form method="POST" action="{{ url_for('auth.create_user') }}">
+                    {{ form.hidden_tag() }}
+                    
+                    <div class="row">
+                        <div class="input-field col s12">
+                            {{ form.username(id="username", class="validate") }}
+                            {{ form.username.label }}
+                            {% if form.username.errors %}
+                                {% for error in form.username.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="helper-text">Username must be at least 3 characters</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="input-field col s12">
+                            {{ form.password(id="password", class="validate") }}
+                            {{ form.password.label }}
+                            {% if form.password.errors %}
+                                {% for error in form.password.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% else %}
+                                <span class="helper-text">Password must be at least 8 characters with mix of letters, numbers, and symbols</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="input-field col s12">
+                            {{ form.confirm_password(id="confirm_password", class="validate") }}
+                            {{ form.confirm_password.label }}
+                            {% if form.confirm_password.errors %}
+                                {% for error in form.confirm_password.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="input-field col s12">
+                            {{ form.role(id="role") }}
+                            {{ form.role.label }}
+                            {% if form.role.errors %}
+                                {% for error in form.role.errors %}
+                                <span class="helper-text red-text">{{ error }}</span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col s12">
+                            {{ form.submit(class="btn waves-effect waves-light teal right") }}
+                            <a href="{{ url_for('auth.users') }}" class="btn-flat waves-effect left">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="card-content grey lighten-4">
+                <div class="row mb-0">
+                    <div class="col s12">
+                        <p><i class="material-icons tiny">info</i> <strong>Role information:</strong></p>
+                        <ul class="browser-default">
+                            <li><strong>User</strong> - Can view and check out accessories from assigned stores</li>
+                            <li><strong>Accessories Admin</strong> - Can manage accessory inventory in assigned stores</li>
+                            <li><strong>Global Admin</strong> - Has full access to all features and stores</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize select inputs for Materialize
+        var selects = document.querySelectorAll('select');
+        M.FormSelect.init(selects);
+    });
+</script>
+{% endblock %}
