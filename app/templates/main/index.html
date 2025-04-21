@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ title }} - Inventory Management System{% endblock %}
+
+{% block styles %}
+<style>
+    .welcome-section {
+        padding: 50px 0;
+        text-align: center;
+    }
+    
+    .feature-box {
+        padding: 20px;
+        height: 100%;
+        transition: all 0.3s ease;
+    }
+    
+    .feature-box:hover {
+        transform: translateY(-5px);
+    }
+    
+    .feature-box .material-icons {
+        font-size: 48px;
+        margin-bottom: 15px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="welcome-section">
+        <h1 class="grey-text text-darken-3">Welcome to Inventory Management System</h1>
+        <p class="flow-text grey-text">An efficient way to manage your inventory</p>
+        
+        <div class="row" style="margin-top: 40px;">
+            <div class="col s12">
+                <a href="{{ url_for('auth.login') }}" class="waves-effect waves-light btn-large">
+                    <i class="material-icons left">login</i>Login to System
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col s12 m4">
+            <div class="card feature-box welcome-tile">
+                <div class="card-content">
+                    <i class="material-icons">inventory_2</i>
+                    <h5>Inventory Management</h5>
+                    <p>Easily track and manage your inventory across multiple stores.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col s12 m4">
+            <div class="card feature-box welcome-tile">
+                <div class="card-content">
+                    <i class="material-icons">assessment</i>
+                    <h5>Detailed Reports</h5>
+                    <p>Get comprehensive reports and insights about your inventory status.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col s12 m4">
+            <div class="card feature-box welcome-tile">
+                <div class="card-content">
+                    <i class="material-icons">security</i>
+                    <h5>Secure Access</h5>
+                    <p>Role-based access control ensures data security and integrity.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // After DOM loads, make all feature boxes the same height
+        equalizeHeight();
+        
+        // Re-equalize heights on window resize
+        window.addEventListener('resize', equalizeHeight);
+        
+        function equalizeHeight() {
+            // Reset heights first
+            let boxes = document.querySelectorAll('.welcome-tile');
+            boxes.forEach(box => box.style.height = 'auto');
+            
+            // Get the maximum height
+            let maxHeight = 0;
+            boxes.forEach(box => {
+                if (box.offsetHeight > maxHeight) {
+                    maxHeight = box.offsetHeight;
+                }
+            });
+            
+            // Set all boxes to the maximum height
+            boxes.forEach(box => box.style.height = maxHeight + 'px');
+        }
+    });
+</script>
+{% endblock %}

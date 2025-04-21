@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Inventory Management System{% endblock %}</title>
+    
+    <!-- Materialize CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    
+    <!-- Material Icons -->
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block styles %}{% endblock %}
+</head>
+<body class="grey lighten-4">
+    <header>
+        <!-- Navbar -->
+        <div class="navbar-fixed">
+            <nav class="black">
+                <div class="nav-wrapper">
+                    <a href="{{ url_for('main.index') }}" class="brand-logo">IMS</a>
+                    <a href="#" data-target="mobile-nav" class="sidenav-trigger"><i class="material-icons">menu</i></a>
+                    
+                    {% if current_user.is_authenticated %}
+                    <ul class="right hide-on-med-and-down">
+                        <!-- Global Store Selector -->
+                        {% if current_user.user_stores|length > 1 %}
+                        <li>
+                            <a class="dropdown-trigger" href="#!" data-target="store-dropdown">
+                                <i class="material-icons left">store</i>
+                                {% if active_store %}
+                                {{ active_store.name }}
+                                {% else %}
+                                Select Store
+                                {% endif %}
+                                <i class="material-icons right">arrow_drop_down</i>
+                            </a>
+                            <ul id="store-dropdown" class="dropdown-content">
+                                {% for store in current_user.user_stores %}
+                                <li>
+                                    <a href="{{ url_for('main.set_active_store', store_id=store.store.id) }}">
+                                        {{ store.store.name }}
+                                        {% if active_store and active_store.id == store.store.id %}
+                                        <i class="material-icons right">check</i>
+                                        {% endif %}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- Main Navigation Items -->
+                        <li><a href="{{ url_for('main.index') }}"><i class="material-icons left">dashboard</i>Dashboard</a></li>
+                        <li><a href="{{ url_for('inventory.items') }}"><i class="material-icons left">inventory</i>Inventory</a></li>
+                        
+                        {% if current_user.role.value in ['admin_global', 'partner_admin'] %}
+                        <li>
+                            <a class="dropdown-trigger" href="#!" data-target="admin-dropdown">
+                                <i class="material-icons left">admin_panel_settings</i>Admin
+                                <i class="material-icons right">arrow_drop_down</i>
+                            </a>
+                            <ul id="admin-dropdown" class="dropdown-content">
+                                {% if current_user.role.value == 'admin_global' %}
+                                <li><a href="{{ url_for('auth.users') }}">Manage Users</a></li>
+                                <li><a href="{{ url_for('admin.stores') }}">Manage Stores</a></li>
+                                <li class="divider"></li>
+                                {% endif %}
+                                <li><a href="{{ url_for('admin.inventory_report') }}">Inventory Reports</a></li>
+                                <li><a href="{{ url_for('admin.transaction_report') }}">Transaction Logs</a></li>
+                                {% if current_user.role.value == 'admin_global' %}
+                                <li><a href="{{ url_for('admin.security_logs') }}">Security Logs</a></li>
+                                {% endif %}
+                            </ul>
+                        </li>
+                        {% endif %}
+                        
+                        <!-- User Menu -->
+                        <li>
+                            <a class="dropdown-trigger" href="#!" data-target="user-dropdown">
+                                <i class="material-icons left">person</i>{{ current_user.username }}
+                                <i class="material-icons right">arrow_drop_down</i>
+                            </a>
+                            <ul id="user-dropdown" class="dropdown-content">
+                                <li><a href="{{ url_for('auth.account') }}">Profile</a></li>
+                                <li><a href="{{ url_for('auth.password_change') }}">Change Password</a></li>
+                                <li class="divider"></li>
+                                <li><a href="{{ url_for('auth.logout') }}">Logout</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                    {% endif %}
+                </div>
+            </nav>
+        </div>
+        
+        <!-- Mobile Sidenav -->
+        <ul class="sidenav" id="mobile-nav">
+            {% if current_user.is_authenticated %}
+            <li>
+                <div class="user-view">
+                    <div class="background black"></div>
+                    <span class="white-text name">{{ current_user.username }}</span>
+                    <span class="white-text email">{{ current_user.email }}</span>
+                </div>
+            </li>
+            
+            <!-- Global Store Selector for Mobile -->
+            {% if current_user.user_stores|length > 1 %}
+            <li><div class="divider"></div></li>
+            <li><a class="subheader">Select Store</a></li>
+            {% for store in current_user.user_stores %}
+            <li>
+                <a href="{{ url_for('main.set_active_store', store_id=store.store.id) }}" class="waves-effect">
+                    <i class="material-icons">store</i> {{ store.store.name }}
+                    {% if active_store and active_store.id == store.store.id %}
+                    <i class="material-icons right">check</i>
+                    {% endif %}
+                </a>
+            </li>
+            {% endfor %}
+            {% endif %}
+            
+            <!-- Main Navigation Items -->
+            <li><div class="divider"></div></li>
+            <li><a href="{{ url_for('main.index') }}" class="waves-effect"><i class="material-icons">dashboard</i>Dashboard</a></li>
+            <li><a href="{{ url_for('inventory.items') }}" class="waves-effect"><i class="material-icons">inventory</i>Inventory</a></li>
+            
+            <!-- Admin Menu Items -->
+            {% if current_user.role.value in ['admin_global', 'partner_admin'] %}
+            <li><div class="divider"></div></li>
+            <li><a class="subheader">Admin</a></li>
+            {% if current_user.role.value == 'admin_global' %}
+            <li><a href="{{ url_for('auth.users') }}" class="waves-effect"><i class="material-icons">people</i>Manage Users</a></li>
+            <li><a href="{{ url_for('admin.stores') }}" class="waves-effect"><i class="material-icons">store_mall_directory</i>Manage Stores</a></li>
+            {% endif %}
+            <li><a href="{{ url_for('admin.inventory_report') }}" class="waves-effect"><i class="material-icons">assessment</i>Inventory Reports</a></li>
+            <li><a href="{{ url_for('admin.transaction_report') }}" class="waves-effect"><i class="material-icons">receipt_long</i>Transaction Logs</a></li>
+            {% if current_user.role.value == 'admin_global' %}
+            <li><a href="{{ url_for('admin.security_logs') }}" class="waves-effect"><i class="material-icons">security</i>Security Logs</a></li>
+            {% endif %}
+            {% endif %}
+            
+            <!-- User Menu Items -->
+            <li><div class="divider"></div></li>
+            <li><a class="subheader">Account</a></li>
+            <li><a href="{{ url_for('auth.account') }}" class="waves-effect"><i class="material-icons">person</i>Profile</a></li>
+            <li><a href="{{ url_for('auth.password_change') }}" class="waves-effect"><i class="material-icons">lock</i>Change Password</a></li>
+            <li><a href="{{ url_for('auth.logout') }}" class="waves-effect"><i class="material-icons">exit_to_app</i>Logout</a></li>
+            {% else %}
+            <li><a href="{{ url_for('auth.login') }}" class="waves-effect"><i class="material-icons">login</i>Login</a></li>
+            {% endif %}
+        </ul>
+    </header>
+    
+    <main class="container">
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="row">
+                        <div class="col s12">
+                            <div class="card-panel {{ 'green lighten-4' if category == 'success' else 'red lighten-4' }}">
+                                <span class="{{ 'green-text' if category == 'success' else 'red-text' }} text-darken-4">
+                                    {{ message }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <!-- Main Content -->
+        {% block content %}{% endblock %}
+    </main>
+    
+    <footer class="page-footer black">
+        <div class="footer-copyright">
+            <div class="container">
+                © 2025 Inventory Management System
+                <a class="grey-text text-lighten-4 right" href="#">About</a>
+            </div>
+        </div>
+    </footer>
+    
+    <!-- Materialize JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+    
+    <!-- Initialize Materialize Components -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize sidenav
+            const sidenavElems = document.querySelectorAll('.sidenav');
+            M.Sidenav.init(sidenavElems);
+            
+            // Initialize dropdowns
+            const dropdownElems = document.querySelectorAll('.dropdown-trigger');
+            M.Dropdown.init(dropdownElems, {
+                coverTrigger: false,
+                constrainWidth: false
+            });
+            
+            // Initialize tooltips
+            const tooltipElems = document.querySelectorAll('.tooltipped');
+            M.Tooltip.init(tooltipElems);
+            
+            // Initialize modals
+            const modalElems = document.querySelectorAll('.modal');
+            M.Modal.init(modalElems);
+            
+            // Initialize form selects
+            const selectElems = document.querySelectorAll('select');
+            M.FormSelect.init(selectElems);
+            
+            // Initialize datepickers
+            const dateElems = document.querySelectorAll('.datepicker');
+            M.Datepicker.init(dateElems, {
+                format: 'yyyy-mm-dd',
+                defaultDate: new Date(),
+                setDefaultDate: true
+            });
+        });
+    </script>
+    
+    {% block scripts %}{% endblock %}
+</body>
+</html>
